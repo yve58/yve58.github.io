@@ -5,14 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Simple Snake Game</title>
     <style>
-        body { display: flex; justify-content: center; align-items: center; height: 100vh; background: #222; }
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #0f2027 0%, #2c5364 100%);
+        }
         canvas { background: #111; border: 2px solid #fff; }
     </style>
 </head>
 <body>
-    <div id="score" style="color: #fff; font-size: 1.2em; text-align: center; margin-bottom: 10px;">Score: 0</div>
+    <!-- Score will be drawn on the canvas -->
     <canvas id="game" width="600" height="600"></canvas>
-    <div id="game-over-message" style="color: #fff; font-size: 1.5em; text-align: center; margin-top: 20px;"></div>
+    <div id="game-over-message" style="color: #fff; font-size: 2em; text-align: center; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none;"></div>
     <script>
         const canvas = document.getElementById('game');
         const ctx = canvas.getContext('2d');
@@ -34,7 +40,7 @@
         }
 
         function updateScore() {
-            document.getElementById('score').textContent = 'Score: ' + score;
+            // No longer needed, score is drawn on canvas
         }
 
         function updateSpeed() {
@@ -48,8 +54,12 @@
         }
 
         function resetFood() {
-            food.x = getRandomInt(0, canvas.width - grid);
-            food.y = getRandomInt(0, canvas.height - grid);
+            let valid = false;
+            while (!valid) {
+                food.x = getRandomInt(0, canvas.width - grid);
+                food.y = getRandomInt(0, canvas.height - grid);
+                valid = !snake.some(segment => segment.x === food.x && segment.y === food.y);
+            }
         }
 
         function showGameOverMessage(show) {
@@ -72,20 +82,20 @@
             count = 0;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Draw grid
-            ctx.strokeStyle = '#333';
-            for (let x = 0; x <= canvas.width; x += grid) {
-                ctx.beginPath();
-                ctx.moveTo(x, 0);
-                ctx.lineTo(x, canvas.height);
-                ctx.stroke();
+            // Draw checkerboard grid
+            for (let y = 0; y < canvas.height; y += grid) {
+                for (let x = 0; x < canvas.width; x += grid) {
+                    ctx.fillStyle = ((x / grid + y / grid) % 2 === 0) ? '#145A32' : '#229954';
+                    ctx.fillRect(x, y, grid, grid);
+                }
             }
-            for (let y = 0; y <= canvas.height; y += grid) {
-                ctx.beginPath();
-                ctx.moveTo(0, y);
-                ctx.lineTo(canvas.width, y);
-                ctx.stroke();
-            }
+
+            // Draw score on top left of canvas
+            ctx.fillStyle = '#fff';
+            ctx.font = '24px Arial';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillText('Score: ' + score, 10, 10);
 
             // Apply next direction if queued
             if (nextDirection) {
