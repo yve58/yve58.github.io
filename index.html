@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Snake Game</title>
+    <style>
+        body { display: flex; justify-content: center; align-items: center; height: 100vh; background: #222; }
+        canvas { background: #111; border: 2px solid #fff; }
+    </style>
+</head>
+<body>
+    <div id="score" style="color: #fff; font-size: 1.2em; text-align: center; margin-bottom: 10px;">Score: 0</div>
+    <canvas id="game" width="600" height="600"></canvas>
+    <div id="game-over-message" style="color: #fff; font-size: 1.5em; text-align: center; margin-top: 20px;"></div>
+    <script>
+        const canvas = document.getElementById('game');
+        const ctx = canvas.getContext('2d');
+        const grid = 40;
+        let count, snake, dx, dy, food, gameOver, score, speed, frameSkip;
+        let nextDirection = null;
+
+        function initGame() {
+            count = 0;
+            snake = [{x: 200, y: 200}];
+            dx = grid;
+            dy = 0;
+            food = {x: 320, y: 200};
+            gameOver = false;
+            score = 0;
+            speed = 1;
+            frameSkip = 10; // Higher = slower
+            updateScore();
+        }
+
+        function updateScore() {
+            document.getElementById('score').textContent = 'Score: ' + score;
+        }
+
+        function updateSpeed() {
+            // Increase speed every 5 points, but cap at a minimum frameSkip
+            frameSkip = Math.max(2, 10 - Math.floor(score / 5));
+        }
+        initGame();
+
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min) / grid) * grid + min;
+        }
+
+        function resetFood() {
+            food.x = getRandomInt(0, canvas.width - grid);
+            food.y = getRandomInt(0, canvas.height - grid);
+        }
+
+        function showGameOverMessage(show) {
+            const msgDiv = document.getElementById('game-over-message');
+            if (show) {
+                msgDiv.textContent = 'Game Over! Press Space to restart.';
+            } else {
+                msgDiv.textContent = '';
+            }
+        }
+
+        function gameLoop() {
+            if (gameOver) {
+                showGameOverMessage(true);
+                return;
+            }
+            showGameOverMessage(false);
+            requestAnimationFrame(gameLoop);
+            if (++count < frameSkip) return;
+            count = 0;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw grid
+            ctx.strokeStyle = '#333';
+            for (let x = 0; x <= canvas.width; x += grid) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y <= canvas.height; y += grid) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+
+            // Apply next direction if queued
+            if (nextDirection) {
+                dx = nextDirection.dx;
+                dy = nextDirection.dy;
+                nextDirection = null;
+            }
+
+            // Move snake
+            let head = {x: snake[0].x + dx, y: snake[0].y + dy};
+            snake.unshift(head);
+
+            // Check collision with food
+            if (head.x === food.x && head.y === food.y) {
+                resetFood();
+                score++;
+                updateScore();
+                updateSpeed();
+            } else {
+                snake.pop();
+            }
+
+            // Draw food
+            ctx.fillStyle = 'red';
+            ctx.fillRect(food.x, food.y, grid, grid);
+
+            // Draw snake
+            ctx.fillStyle = 'lime';
+            snake.forEach((segment, i) => {
+                ctx.fillRect(segment.x, segment.y, grid, grid);
+                // Check collision with self
+                if (i !== 0 && segment.x === head.x && segment.y === head.y) {
+                    gameOver = true;
+                }
+            });
+
+            // Check wall collision
+            if (head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height) {
+                gameOver = true;
+            }
+        }
+
+        document.addEventListener('keydown', e => {
+            // Prevent reversing direction and queue only one direction per frame
+            if (e.key === 'ArrowLeft' && dx === 0) {
+                if (!(dy === 0 && dx === grid)) nextDirection = {dx: -grid, dy: 0};
+            } else if (e.key === 'ArrowUp' && dy === 0) {
+                if (!(dx === 0 && dy === grid)) nextDirection = {dx: 0, dy: -grid};
+            } else if (e.key === 'ArrowRight' && dx === 0) {
+                if (!(dy === 0 && dx === -grid)) nextDirection = {dx: grid, dy: 0};
+            } else if (e.key === 'ArrowDown' && dy === 0) {
+                if (!(dx === 0 && dy === -grid)) nextDirection = {dx: 0, dy: grid};
+            } else if (e.key === ' ' || e.code === 'Space') {
+                if (gameOver) {
+                    initGame();
+                    showGameOverMessage(false);
+                    gameLoop();
+                }
+            }
+        });
+
+        gameLoop();
+    </script>
+</body>
+</html>
+ 
